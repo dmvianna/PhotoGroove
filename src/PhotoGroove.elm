@@ -14,6 +14,9 @@ import Random
 port setFilters : FilterOptions -> Cmd msg
 
 
+port activityChanges : (String -> msg) -> Sub msg
+
+
 type alias FilterOptions =
     { url : String
     , filters :
@@ -39,6 +42,7 @@ type Status
 
 type alias Model =
     { status : Status
+    , activity : String
     , chosenSize : ThumbnailSize
     , hue : Int
     , ripple : Int
@@ -57,6 +61,7 @@ type Msg
     | ClickedSize ThumbnailSize
     | ClickedSurpriseMe
     | GotRandomPhoto Photo
+    | GotActivity String
     | GotPhotos (Result Http.Error (List Photo))
     | SlidHue Int
     | SlidRipple Int
@@ -66,6 +71,7 @@ type Msg
 initialModel : Model
 initialModel =
     { status = Loading
+    , activity = ""
     , chosenSize = Medium
     , hue = 5
     , ripple = 5
@@ -168,6 +174,7 @@ viewLoaded photos selectedUrl model =
     , button
         [ onClick ClickedSurpriseMe ]
         [ text "Surprise Me!" ]
+    , div [ class "activity" ] [ text model.activity ]
     , div [ class "filters" ]
         [ viewFilter SlidHue "Hue" model.hue
         , viewFilter SlidRipple "Ripple" model.ripple
@@ -236,6 +243,11 @@ update msg model =
         GotPhotos (Err _) ->
             ( { model | status = Errored "Server error!" }, Cmd.none )
 
+        GotActivity activity ->
+            ( { model | activity = activity }
+            , Cmd.none
+            )
+
 
 applyFilters : Model -> ( Model, Cmd Msg )
 applyFilters model =
@@ -276,14 +288,23 @@ selectUrl url status =
             status
 
 
-main : Program () Model Msg
+main : Program Float Model Msg
 main =
     Browser.element
-        { init = \flags -> ( initialModel, initialCmd )
+        { init = init
         , view = view
         , update = update
-        , subscriptions = \_ -> Sub.none
+        , subscriptions = \_ -> activityChanges GotActivity
         }
+
+
+init : Float -> ( Model, Cmd Msg )
+init flags =
+    let
+        activity =
+            "Initialising Pasta v" ++ String.fromFloat flags
+    in
+    ( { initialModel | activity = activity }, initialCmd )
 
 
 rangeSlider : List (Attribute msg) -> List (Html msg) -> Html msg
