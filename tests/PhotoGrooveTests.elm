@@ -53,3 +53,10 @@ noPhotosNoThumbnails =
                 |> Query.fromHtml
                 |> Query.findAll [ tag "img" ]
                 |> Query.count (Expect.equal 0)
+
+
+thumbnailRendered : String -> Query.Single msg -> Expectation
+thumbnailRendered url query =
+    query
+        |> Query.findAll [ tag "img", attribute (Attr.src (PhotoGroove.urlPrefix ++ url)) ]
+        |> Query.count (Expect.atLeast 1)
