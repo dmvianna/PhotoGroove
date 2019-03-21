@@ -1,4 +1,4 @@
-module PhotoGrooveTests exposing (decoderTest, noPhotosNoThumbnails, sliders)
+module PhotoGrooveTests exposing (decoderTest, noPhotosNoThumbnails, sliders, thumbnailsWork)
 
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer, int, list, string)
@@ -60,3 +60,28 @@ thumbnailRendered url query =
     query
         |> Query.findAll [ tag "img", attribute (Attr.src (PhotoGroove.urlPrefix ++ url)) ]
         |> Query.count (Expect.atLeast 1)
+
+
+photoFromUrl : String -> Photo
+photoFromUrl url =
+    { url = url, size = 0, title = "" }
+
+
+thumbnailsWork : Test
+thumbnailsWork =
+    fuzz (Fuzz.intRange 1 5) "URLs render as thumbnails" <|
+        \urlCount ->
+            let
+                urls : List String
+                urls =
+                    List.range 1 urlCount
+                        |> List.map (\num -> String.fromInt num ++ ".png")
+
+                thumbnailChecks : List (Query.Single msg -> Expectation)
+                thumbnailChecks =
+                    List.map thumbnailRendered urls
+            in
+            { initialModel | status = PhotoGroove.Loaded (List.map photoFromUrl urls) "" }
+                |> PhotoGroove.view
+                |> Query.fromHtml
+                |> Expect.all thumbnailChecks
